@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f2f4f7">
+<meta name="color-scheme" content="light">
+<meta name="description" content="时序 DayFlow：本地优先的个人日程与截止事项时间轴。竖向时间轴、内置中文 Agent、周视图、任务收件箱、DDL 与专注计时。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="时序 DayFlow · 把一天，放回时间轴">
+<meta property="og:description" content="竖向时间轴，色块的上边缘就是开始时刻。说一句话，日程自己落位；本地优先，离线可用。">
+<meta name="twitter:card" content="summary">
+<title>时序 DayFlow · 智能日程</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111315'/%3E%3Cpath d='M16 22h32M16 32h21M16 42h26' stroke='%23f2f4f7' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='50' cy='32' r='4' fill='%231d5fbf'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<script>
+  try {
+    var savedTheme = localStorage.getItem('dayflow.theme.v1') || 'hud';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  } catch (e) {}
+</script>
+</head>
+<body class="view-calendar">
+<div class="space-layer" id="spaceLayer" aria-hidden="true">
+  <span class="space-nebula"></span>
+  <span class="space-stars"></span>
+  <span class="space-grid"></span>
+</div>
+<div class="parallax-layer" id="parallaxLayer" aria-hidden="true">
+  <span class="parallax-glow"></span>
+  <span class="parallax-veil"></span>
+  <span class="parallax-line"></span>
+</div>
+<div class="spatial-layer" id="spatialLayer" aria-hidden="true">
+  <span class="spatial-orb o1"></span>
+  <span class="spatial-orb o2"></span>
+  <span class="spatial-orb o3"></span>
+</div>
+<div class="app" id="app">
+
+  <!-- ================= 智能体 ================= -->
+  <aside class="agent">
+    <header class="agent-head">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M4 6.5h16M4 12h10.5M4 17.5h13"></path>
+            <circle class="brand-dot" cx="18.6" cy="12" r="1.7" fill="currentColor" stroke="none"></circle>
+          </svg>
+        </span>
+        <div class="brand-text">
+          <strong>时序</strong>
+          <span>DayFlow · 个人日程</span>
+        </div>
+      </div>
+      <div class="agent-head-actions">
+        <span class="status-pill" id="modePill"><i></i><span id="agentMode">本地</span></span>
+        <button class="icon-btn" id="settingsBtn" aria-label="设置" title="设置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="3.2"></circle>
+            <path d="M19.2 13.5a7.6 7.6 0 0 0 0-3l1.7-1.2-1.9-3.3-2 .8a7.7 7.7 0 0 0-2.6-1.5L14.1 3h-4.2l-.3 2.3A7.7 7.7 0 0 0 7 6.8l-2-.8-1.9 3.3 1.7 1.2a7.6 7.6 0 0 0 0 3l-1.7 1.2 1.9 3.3 2-.8a7.7 7.7 0 0 0 2.6 1.5l.3 2.3h4.2l.3-2.3a7.7 7.7 0 0 0 2.6-1.5l2 .8 1.9-3.3-1.7-1.2Z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <h2 class="agent-title">日程助理</h2>
+    <p class="agent-lede">把会议、任务或截图发给我，我会放进时间轴。</p>
+
+    <div class="chat" id="chat" aria-live="polite"></div>
+
+    <div class="suggestions" id="suggestions">
+      <button class="chip" data-say="明天下午3点产品评审1小时，在3楼会议室">产品评审</button>
+      <button class="chip" data-say="每天早上7点跑步30分钟">早起跑步</button>
+      <button class="chip" data-say="今天有什么安排？">今日安排</button>
+      <button class="chip" data-say="本周复盘">本周复盘</button>
+    </div>
+
+    <div class="attachments" id="attachments" hidden></div>
+
+    <form class="composer" id="composer">
+      <button class="attach-btn" type="button" id="attachBtn" aria-label="添加图片" title="添加图片（也可以直接粘贴或拖入）">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect>
+          <circle cx="8.7" cy="9.6" r="1.5"></circle>
+          <path d="m4.5 17 4.6-4.4a2 2 0 0 1 2.7 0l2.1 2 1.6-1.4a2 2 0 0 1 2.6 0l2.4 2.1"></path>
+        </svg>
+      </button>
+      <button class="attach-btn voice-btn" type="button" id="voiceBtn" aria-label="语音输入" title="语音输入">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="3" width="6" height="11" rx="3"></rect>
+          <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"></path>
+          <path d="M12 18v3"></path>
+        </svg>
+      </button>
+      <textarea id="chatInput" rows="1" aria-label="给时序发消息" placeholder="说一句话，或粘贴 / 拖入一张图片"></textarea>
+      <button class="send-btn" type="submit" id="sendBtn" aria-label="发送">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 19V5"></path><path d="m5.5 11.5 6.5-6.5 6.5 6.5"></path>
+        </svg>
+      </button>
+    </form>
+    <input type="file" id="imageInput" class="file-input-hidden" accept="image/*" multiple>
+    <div class="agent-foot">
+      <span>Enter 发送 · Shift + Enter 换行 · 支持图片</span>
+      <button id="clearChat" type="button">清空对话</button>
+    </div>
+  </aside>
+
+  <!-- ================= 日程 ================= -->
+  <section class="calendar" id="calendar">
+    <div class="mobile-brand">
+      <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M4 6.5h16M4 12h10.5M4 17.5h13"></path>
+            <circle class="brand-dot" cx="18.6" cy="12" r="1.7" fill="currentColor" stroke="none"></circle>
+          </svg>
+        </span>
+      <strong>时序</strong>
+    </div>
+    <header class="topbar">
+      <div class="date-block">
+        <div class="date-nav">
+          <button class="icon-btn" id="prevDay" aria-label="前一天" title="前一天 (←)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m14.5 6-6 6 6 6"></path></svg>
+          </button>
+          <button class="icon-btn" id="nextDay" aria-label="后一天" title="后一天 (→)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9.5 6 6 6-6 6"></path></svg>
+          </button>
+        </div>
+        <div class="date-text">
+          <div class="date-heading">
+            <h1 id="dateTitle" role="button" tabindex="0" title="打开月历">10月28日</h1>
+            <button class="date-jump-btn" id="monthBtn" type="button" aria-label="打开月历" title="打开月历 (M)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="5.5" width="16" height="14.5" rx="1.6"></rect>
+                <path d="M8 3.5v4M16 3.5v4M4 10h16"></path>
+              </svg>
+            </button>
+          </div>
+          <p id="dateSub">周三 · 今天</p>
+          <p class="date-finding" id="dateFinding"></p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn ghost features-btn" id="featuresBtn" title="功能">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="4" width="6.5" height="6.5" rx="1.2"></rect>
+            <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.2"></rect>
+            <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.2"></rect>
+            <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.2"></rect>
+          </svg>
+          <span class="label">功能</span>
+        </button>
+        <button class="btn ghost theme-btn" id="themeBtn" title="切换主题">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a9 9 0 1 0 0 18h1.2a2.3 2.3 0 0 0 1.7-3.8 2.3 2.3 0 0 1 1.7-3.8H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3Z"></path>
+            <circle cx="7.5" cy="10" r="1"></circle><circle cx="10.5" cy="6.8" r="1"></circle><circle cx="15" cy="7.5" r="1"></circle>
+          </svg>
+          <span class="label">主题</span>
+        </button>
+        <button class="btn ghost today-btn" id="todayBtn" title="回到今天">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="5.5" width="16" height="14.5" rx="1.6"></rect>
+            <path d="M8 3.5v4M16 3.5v4M4 10h16"></path>
+            <circle cx="12" cy="14.5" r="1.4" fill="currentColor" stroke="none"></circle>
+          </svg>
+          <span class="label">今天</span>
+        </button>
+        <button class="btn ghost focus-btn legacy-action" id="focusBtn" title="开始专注">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="13" r="7.5"></circle>
+            <path d="M12 9.2V13l2.6 1.7"></path>
+            <path d="M9 2.5h6"></path>
+          </svg>
+          <span class="label">专注</span>
+        </button>
+        <button class="btn ghost tasks-btn legacy-action" id="tasksBtn" title="任务收件箱">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 5.5h16v13H4z"></path><path d="M4 10h16"></path><path d="M9 14h6"></path>
+          </svg>
+          <span class="label">任务</span>
+          <span class="count" id="tasksCount" hidden>0</span>
+        </button>
+        <button class="btn ghost edit-toggle" id="editModeBtn" type="button" aria-pressed="false" title="调整模式：先点色块选中，再拖动 (E)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z"></path>
+            <path d="m13.5 6.5 4 4"></path>
+          </svg>
+          <span class="label">调整</span>
+        </button>
+        <button class="btn ghost fold-btn" id="foldBtn" type="button" aria-expanded="true" title="收起顶部信息">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 14.5 6-6 6 6"></path></svg>
+          <span class="label">收起</span>
+        </button>
+        <button class="btn primary new-btn" id="newBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+          <span class="label">新建日程</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="focus-bar" id="focusBar" hidden>
+      <span class="focus-dot"></span>
+      <span class="focus-word">专注</span>
+      <strong id="focusBarTitle"></strong>
+      <span class="focus-clock" id="focusClock">25:00</span>
+      <button type="button" class="focus-stop" id="focusStop">结束</button>
+    </div>
+
+    <div class="weekstrip-wrap">
+      <button class="week-arrow" id="prevWeek" type="button" aria-label="上一周" title="上一周">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m14.5 6-6 6 6 6"></path></svg>
+      </button>
+      <div class="weekstrip" id="weekstrip"></div>
+      <button class="week-arrow" id="nextWeek" type="button" aria-label="下一周" title="下一周">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9.5 6 6 6-6 6"></path></svg>
+      </button>
+    </div>
+
+    <div class="day-meta">
+      <h2 class="section-title" id="sectionTitle">今日时间轴</h2>
+      <div class="stats" id="stats"></div>
+      <div class="legend" id="legend"></div>
+      <div class="day-tools">
+        <div class="view-switch range-switch" role="group" aria-label="时间范围">
+          <button type="button" id="viewDay" aria-pressed="true">日</button>
+          <button type="button" id="viewWeek" aria-pressed="false">周</button>
+        </div>
+        <button type="button" class="day-action legacy-action" id="rolloverBtn" title="顺延未完成的日程">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 7h11a4 4 0 0 1 0 8H4"></path><path d="m8 11-4 4 4 4"></path>
+          </svg>
+          <span>顺延</span>
+        </button>
+        <button type="button" class="ddl-add legacy-action" id="ddlBtn" title="DDL 截止事项" aria-label="DDL 截止事项">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 21V4"></path><path d="M6 4h11l-2.2 3.4L17 11H6"></path>
+          </svg>
+          <span>DDL</span>
+          <span class="count" id="ddlCount" hidden>0</span>
+        </button>
+                <div class="view-switch" role="group" aria-label="时间轴密度">
+          <button type="button" id="viewStandard" aria-pressed="true">标准</button>
+          <button type="button" id="viewCompact" aria-pressed="false">缩略</button>
+        </div>
+      </div>
+    </div>
+
+    <form class="quick-add" id="quickAddForm">
+      <span class="quick-add-badge">Agent</span>
+      <input id="quickAddInput" type="text" placeholder="快速添加：明天下午 3 点 产品评审 1 小时" autocomplete="off">
+      <button type="submit" class="quick-add-submit" id="quickAddSubmit">添加</button>
+    </form>
+
+    <div class="selection-bar" id="selectionBar" hidden>
+      <span class="selection-dot" id="selectionDot"></span>
+      <span class="selection-label" id="selectionLabel"></span>
+      <div class="selection-actions">
+        <button type="button" data-sel="edit">编辑</button>
+        <button type="button" id="selectionDone" data-sel="done">完成</button>
+        <button type="button" data-sel="delete">删除</button>
+        <button type="button" class="selection-close" data-sel="close" aria-label="取消选择">×</button>
+      </div>
+    </div>
+
+    <div class="timeline-shell" id="timelineShell">
+      <div class="timeline-scroll" id="timelineScroll">
+        <div class="timeline" id="timeline">
+          <div class="hours" id="hours"></div>
+          <div class="blocks" id="blocks"></div>
+          <div class="now-line" id="nowLine" hidden><span class="now-flag" id="nowFlag">现在</span></div>
+        </div>
+      </div>
+      <div class="empty-overlay" id="emptyOverlay" hidden>
+        <div class="empty-card">
+          <span class="empty-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7v5.3l3.4 2.2"></path></svg>
+          </span>
+          <strong>这一天还是一张白纸</strong>
+          <p>点击任意时间格新建，或直接对左边的智能体说一句：</p>
+          <code>明天下午3点 产品评审 1小时</code>
+        </div>
+      </div>
+    </div>
+
+    <div class="week-shell" id="weekShell" hidden>
+      <div class="week-grid-scroll" id="weekGridScroll">
+        <div class="week-grid" id="weekGrid"></div>
+      </div>
+    </div>
+
+    <footer class="calendar-foot">
+      <span id="timelineHint">色块的上边缘 = 开始时刻 · 开启编辑后可拖动</span>
+      <span id="footCount">24 小时视图</span>
+    </footer>
+  </section>
+
+  <!-- ================= 功能页 ================= -->
+  <section class="features-page" id="featuresPage">
+    <header class="features-head">
+      <div>
+        <h2>功能</h2>
+        <p>按用途整理。日历页只保留时间轴和常用操作。</p>
+      </div>
+      <button type="button" class="btn ghost features-back" id="featuresBackBtn">返回日历</button>
+    </header>
+
+    <div class="feature-groups">
+      <section class="feature-group">
+        <h3>日程与任务</h3>
+        <div class="feature-grid">
+          <button type="button" class="feature-card" data-feature="tasks">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="2.2"></rect>
+                <path d="m8 12 2.5 2.5L16 9"></path>
+              </svg>
+            </span>
+            <span class="feature-body"><strong>任务收件箱</strong><small>还没定时间的事，先放这里</small></span>
+            <span class="feature-count" id="featureTasksCount" hidden>0</span>
+          </button>
+
+          <button type="button" class="feature-card" data-feature="ddl">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 21V4"></path><path d="M6 4h11l-2.2 3.4L17 11H6"></path>
+              </svg>
+            </span>
+            <span class="feature-body"><strong>DDL 截止事项</strong><small>截止线、逾期和空档检查</small></span>
+            <span class="feature-count" id="featureDdlCount" hidden>0</span>
+          </button>
+
+          <button type="button" class="feature-card" data-feature="rollover">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 7h11a4 4 0 0 1 0 8H4"></path><path d="m8 11-4 4 4 4"></path>
+              </svg>
+            </span>
+            <span class="feature-body"><strong>顺延未完成</strong><small>把今天没做完的挪到明天或下个空档</small></span>
+          </button>
+        </div>
+      </section>
+
+      
+      <section class="feature-group">
+        <h3>专注与回顾</h3>
+        <div class="feature-grid">
+          <button type="button" class="feature-card" data-feature="focus">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="13" r="7.5"></circle><path d="M12 9.2V13l2.6 1.7"></path><path d="M9 2.5h6"></path>
+              </svg>
+            </span>
+            <span class="feature-body"><strong>专注计时</strong><small>15–90 分钟，可关联当天日程</small></span>
+          </button>
+
+          <button type="button" class="feature-card" data-feature="review">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path>
+              </svg>
+            </span>
+            <span class="feature-body"><strong>本周复盘</strong><small>让 Agent 统计本周安排、完成率和专注</small></span>
+          </button>
+        </div>
+      </section>
+
+      <section class="feature-group">
+        <h3>课表与个性化</h3>
+        <div class="feature-grid">
+          <button type="button" class="feature-card" data-feature="timetable">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="5" width="16" height="15" rx="1.8"></rect>
+                <path d="M8 3.5v3M16 3.5v3M4 10h16M8 14h3M13 14h3"></path>
+              </svg>
+            </span>
+            <span class="feature-body"><strong>课表节次</strong><small id="featureTimetableMeta">第 N 节 ↔ 具体时间</small></span>
+          </button>
+
+          <button type="button" class="feature-card" data-feature="categories">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3a9 9 0 1 0 0 18h1.2a2.3 2.3 0 0 0 1.7-3.8 2.3 2.3 0 0 1 1.7-3.8H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3Z"></path>
+                <circle cx="7.5" cy="10" r="1"></circle><circle cx="10.5" cy="6.8" r="1"></circle><circle cx="15" cy="7.5" r="1"></circle>
+              </svg>
+            </span>
+            <span class="feature-body"><strong>分类与颜色</strong><small>改名、换色、添加自己的分类</small></span>
+          </button>
+
+          <button type="button" class="feature-card" data-feature="templates">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="8" y="8" width="12" height="12" rx="1.8"></rect>
+                <path d="M16 8V5.8A1.8 1.8 0 0 0 14.2 4H5.8A1.8 1.8 0 0 0 4 5.8v8.4A1.8 1.8 0 0 0 5.8 16H8"></path>
+              </svg>
+            </span>
+            <span class="feature-body"><strong>日程模板</strong><small>把今天保存成模板，下次一键套用</small></span>
+          </button>
+        </div>
+      </section>
+
+      <section class="feature-group">
+        <h3>设置与数据</h3>
+        <div class="feature-grid">
+          <button type="button" class="feature-card" data-feature="theme">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3a9 9 0 1 0 0 18h1.2a2.3 2.3 0 0 0 1.7-3.8 2.3 2.3 0 0 1 1.7-3.8H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3Z"></path>
+                <circle cx="7.5" cy="10" r="1"></circle><circle cx="10.5" cy="6.8" r="1"></circle><circle cx="15" cy="7.5" r="1"></circle>
+              </svg>
+            </span>
+            <span class="feature-body"><strong>主题外观</strong><small id="featureThemeMeta">纸白 · 随时切换</small></span>
+          </button>
+
+          <button type="button" class="feature-card" data-feature="widget">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="2.2"></rect>
+                <path d="M3 9h18M8 9v11"></path>
+              </svg>
+            </span>
+            <span class="feature-body"><strong>桌面小组件</strong><small>长按桌面 → 小组件 → 时序 · 今日日程</small></span>
+          </button>
+
+          <button type="button" class="feature-card" data-feature="settings">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3.2"></circle>
+                <path d="M19.2 13.5a7.6 7.6 0 0 0 0-3l1.7-1.2-1.9-3.3-2 .8a7.7 7.7 0 0 0-2.6-1.5L14.1 3h-4.2l-.3 2.3A7.7 7.7 0 0 0 7 6.8l-2-.8-1.9 3.3 1.7 1.2a7.6 7.6 0 0 0 0 3l-1.7 1.2 1.9 3.3 2-.8a7.7 7.7 0 0 0 2.6 1.5l.3 2.3h4.2l.3-2.3a7.7 7.7 0 0 0 2.6-1.5l2 .8 1.9-3.3-1.7-1.2Z"></path>
+              </svg>
+            </span>
+            <span class="feature-body"><strong>设置与备份</strong><small>智能体、通知、导入导出、快照恢复</small></span>
+          </button>
+
+          <button type="button" class="feature-card" data-feature="notifications">
+            <span class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 9a6 6 0 0 0-12 0c0 7-2.5 7-2.5 7h17S18 16 18 9Z"></path>
+                <path d="M10 20a2.3 2.3 0 0 0 4 0"></path>
+              </svg>
+            </span>
+            <span class="feature-body"><strong>通知与提醒</strong><small id="featureNotifyMeta">允许通知、精确提醒设置</small></span>
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <footer class="features-foot">
+      <span>日历页只保留：今天、新建、调整、日/周、标准/缩略</span>
+    </footer>
+  </section>
+</div>
+
+<nav class="mobile-tabs" aria-label="页面切换">
+  <button type="button" class="mobile-tab is-on" id="tabCalendar" data-tab="calendar" aria-selected="true">日历</button>
+  <button type="button" class="mobile-tab" id="tabFeatures" data-tab="features" aria-selected="false">功能</button>
+  <button type="button" class="mobile-tab" id="tabAgent" data-tab="agent" aria-selected="false">Agent</button>
+</nav>
+
+<!-- ================= 日程编辑弹窗 ================= -->
+<dialog class="dialog" id="eventDialog">
+  <form class="dialog-card" id="eventForm" novalidate>
+    <header class="dialog-head">
+      <div>
+        <h3 id="dialogTitle">新建日程</h3>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+
+    <label class="field">
+      <span>标题</span>
+      <input id="fTitle" required maxlength="80" placeholder="要做什么？" autocomplete="off">
+    </label>
+
+    <div class="field-grid">
+      <label class="field">
+        <span>日期</span>
+        <input id="fDate" type="date" required>
+      </label>
+      <label class="field">
+        <span>分类</span>
+        <select id="fCategory"></select>
+      </label>
+      <label class="field">
+        <span>开始</span>
+        <input id="fStart" type="time" step="300" required>
+      </label>
+      <label class="field">
+        <span>结束</span>
+        <input id="fEnd" type="time" step="300" required>
+      </label>
+    </div>
+
+    <div class="duration-row" id="durationRow">
+      <span>时长</span>
+      <button type="button" data-duration="30">30 分钟</button>
+      <button type="button" data-duration="60">1 小时</button>
+      <button type="button" data-duration="90">1.5 小时</button>
+      <button type="button" data-duration="120">2 小时</button>
+    </div>
+
+    <label class="field">
+      <span>提醒</span>
+      <select id="fReminder">
+        <option value="">不提醒</option>
+        <option value="0">准时</option>
+        <option value="5">提前 5 分钟</option>
+        <option value="10">提前 10 分钟</option>
+        <option value="15">提前 15 分钟</option>
+        <option value="30">提前 30 分钟</option>
+        <option value="60">提前 1 小时</option>
+        <option value="1440">提前 1 天</option>
+      </select>
+    </label>
+
+    <details class="event-more" id="eventMore">
+      <summary>地点 / 备注 <em>可选</em></summary>
+      <label class="field">
+        <span>地点</span>
+        <input id="fLocation" maxlength="60" placeholder="会议室 / 链接 / 地点" autocomplete="off">
+      </label>
+      <label class="field">
+        <span>备注</span>
+        <textarea id="fNote" rows="2" maxlength="240" placeholder="补充说明"></textarea>
+      </label>
+    </details>
+
+    <div class="series-scope" id="seriesScope" hidden>
+      <span>重复系列</span>
+      <label class="radio-line"><input type="radio" name="editScope" value="single" checked><span>仅此一次</span></label>
+      <label class="radio-line"><input type="radio" name="editScope" value="series"><span>整个系列</span></label>
+      <p class="field-hint">整个系列只调整时间、标题和内容，日期按原重复规则。</p>
+    </div>
+
+    <footer class="dialog-foot">
+      <button type="button" class="btn danger" id="deleteEvent">删除</button>
+      <button type="button" class="btn danger" id="deleteSeries" hidden>删除系列</button>
+      <div class="spacer"></div>
+      <label class="check"><input type="checkbox" id="fDone"><span>已完成</span></label>
+      <button type="submit" class="btn primary" id="submitEventBtn">保存</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- ================= 设置 ================= -->
+<dialog class="dialog" id="settingsDialog">
+  <form class="dialog-card" id="settingsForm" novalidate>
+    <header class="dialog-head">
+      <div>
+        <h3>智能体设置</h3>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+
+    <div class="mode-switch" role="radiogroup" aria-label="智能体模式">
+      <label class="mode-card">
+        <input type="radio" name="mode" value="local">
+        <span class="mode-body">
+          <strong>本地智能体</strong>
+          <small>内置中文解析引擎，离线即用，无需密钥</small>
+        </span>
+        <span class="mode-tick" aria-hidden="true"></span>
+      </label>
+      <label class="mode-card">
+        <input type="radio" name="mode" value="llm">
+        <span class="mode-body">
+          <strong>大模型</strong>
+          <small>OpenAI 兼容接口，理解更自由，可调用 DeepSeek / Ollama / 视觉模型</small>
+        </span>
+        <span class="mode-tick" aria-hidden="true"></span>
+      </label>
+    </div>
+
+    <div class="llm-fields" id="llmFields">
+      <label class="field">
+        <span>接口地址 Base URL</span>
+        <input id="sBaseUrl" placeholder="https://api.deepseek.com/v1" autocomplete="off" spellcheck="false">
+      </label>
+      <div class="field-grid">
+        <label class="field">
+          <span>模型</span>
+          <input id="sModel" placeholder="deepseek-chat" autocomplete="off" spellcheck="false">
+        </label>
+        <div class="field">
+          <span id="apiKeyLabel">API Key</span>
+          <div class="secret-field">
+            <input id="sApiKey" type="text" class="api-key-input" aria-labelledby="apiKeyLabel" placeholder="sk-..."
+                   autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+            <button type="button" class="reveal-btn" id="revealApiKey" aria-label="显示 API Key" title="显示 API Key">
+              <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                <circle cx="12" cy="12" r="2.6"></circle>
+              </svg>
+              <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m3 3 18 18"></path>
+                <path d="M10.6 6.2A12 12 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3.2 3.8"></path>
+                <path d="M6.3 6.3C3.9 8.1 2.5 12 2.5 12s3.5 6 9.5 6c1.2 0 2.3-.2 3.3-.6"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <p class="field-hint">密钥仅保存在本机浏览器的 localStorage，不会上传到任何第三方。若接口不支持浏览器跨域，将自动回退到本地智能体。</p>
+      <p class="field-hint">图片识别需要模型支持视觉输入，例如 gpt-4o、qwen-vl-max、glm-4v。图片会发送到你填写的接口；本地离线模式不能识图。</p>
+    </div>
+
+    <div class="settings-extra settings-reminders">
+      <span>系统提醒</span>
+      <button type="button" class="text-btn" id="notificationPermissionBtn">允许通知</button>
+      <button type="button" class="text-btn" id="exactAlarmBtn" hidden>精确提醒设置</button>
+    </div>
+    <p class="field-hint">提醒保存在手机，关闭 App 后仍会通知；网页版只在页面打开时提醒。</p>
+
+    <div class="settings-section">
+      <div class="settings-section-head">
+        <h4>后台保活 · 提醒通知靠它</h4>
+        <span class="field-hint">系统可能限制后台活动，按下面设置可减少漏提醒</span>
+      </div>
+      <ol class="keepalive-list">
+        <li><strong>电池</strong>：设置 → 电池 → 应用耗电管理 → 时序 → 选「不限制 / 允许后台活动」</li>
+        <li><strong>自启动</strong>：设置 → 应用 → 时序 → 自启动 / 关联启动 → 打开</li>
+        <li><strong>加锁</strong>：最近任务里把时序「加锁」，别一键清理</li>
+        <li><strong>通知</strong>：允许时序发通知，否则查到也推不出来</li>
+        <li><strong>精确闹钟</strong>：设置 → 应用 → 特殊权限 → 闹钟和提醒 → 允许时序</li>
+      </ol>
+      <div class="settings-actions">
+        <button type="button" class="text-btn" id="batteryBtn">应用设置</button>
+        <button type="button" class="text-btn" id="exactAlarmBtn2">精确闹钟</button>
+      </div>
+      <p class="field-hint" id="keepAliveHint">改完可以回来说「立即检查」验证一次：能查到活动列表就说明后台通路是好的。</p>
+    </div>
+
+    <div class="settings-extra settings-theme">
+      <span>主题外观</span>
+      <button type="button" class="text-btn accent" id="themeSettingsBtn">纸白 · 切换</button>
+    </div>
+    <p class="field-hint">HUD / 视差 / 空间 / 极光 / 玻璃 / 纸白 / 墨夜 / 暖砂 / 松林，点击即可切换，会记住到下次打开。</p>
+
+    <div class="settings-extra settings-timetable">
+      <span>课表节次</span>
+      <button type="button" class="text-btn accent" id="timetableBtn">未设置 · 去设置</button>
+    </div>
+    <p class="field-hint">设置后可以直接说「周三第1到2节 高等数学」，Agent 会换算成具体时间。</p>
+
+    
+    <div class="settings-extra settings-yanhekt">
+      <span>延河课堂 DDL · <input id="sYanhektUrl" placeholder="留空即用云端 ddls.json" autocomplete="off" spellcheck="false" style="width:190px;max-width:42vw;font-size:12px;padding:4px 8px;border:1px solid rgba(128,128,128,.4);border-radius:8px;background:transparent;color:inherit;"></span>
+      <button type="button" class="text-btn accent" id="yanhektSyncBtn">同步 DDL</button>
+    </div>
+    <p class="field-hint">默认从云端拉（PC 巡检完自动更新），不用填地址；想走局域网直连再填 http://电脑IP:8765。</p>
+
+    <div class="settings-section">
+      <div class="settings-section-head">
+        <h4>数据与备份</h4>
+        <span class="field-hint">全部保存在本机 · JSON 备份不含 API Key</span>
+      </div>
+      <div class="settings-actions">
+        <button type="button" class="btn ghost" id="exportAllBtn">导出全部 JSON</button>
+        <button type="button" class="btn ghost" id="importAllBtn">导入全部 JSON</button>
+        <button type="button" class="btn ghost" id="importIcsBtn">导入 .ics</button>
+        <button type="button" class="btn ghost" id="exportBtn">导出 .ics</button>
+      </div>
+      <div class="settings-inline">
+        <select id="snapshotSelect" class="select-compact" aria-label="自动快照"></select>
+        <button type="button" class="text-btn" id="restoreSnapshotBtn">恢复快照</button>
+        <span class="field-hint" id="snapshotHint">每天首次打开自动保存，保留最近 3 份。</span>
+      </div>
+      <div class="settings-actions">
+        <button type="button" class="text-btn" id="categoryBtn">分类与颜色</button>
+        <button type="button" class="text-btn" id="dedupeBtn">检查重复</button>
+        <button type="button" class="text-btn" id="cleanSampleBtn">清掉样例</button>
+        <button type="button" class="text-btn danger-text" id="clearAll">清空全部日程</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-head">
+        <h4>日程模板</h4>
+        <span class="field-hint">把一天的结构存下来</span>
+      </div>
+      <div class="template-list" id="templateList"></div>
+      <div class="settings-actions">
+        <button type="button" class="text-btn accent" id="saveTemplateBtn">把今天保存为模板</button>
+      </div>
+      <p class="field-hint">模板保存今天的标题、时间、分类和备注；套用时写入当前日期，并跳过已有重复项。</p>
+    </div>
+
+    <input type="file" id="importAllInput" accept="application/json,.json" hidden>
+    <input type="file" id="importIcsInput" accept=".ics,text/calendar" hidden>
+
+    <footer class="dialog-foot">
+      <span class="dialog-version">Web 1.23.0</span>
+      <div class="spacer"></div>
+      <button type="button" class="btn ghost" data-close>取消</button>
+      <button type="submit" class="btn primary">保存智能体设置</button>
+    </footer>
+  </form>
+</dialog>
+
+
+<!-- ================= 专注 ================= -->
+<dialog class="dialog" id="focusDialog">
+  <form class="dialog-card" id="focusForm" novalidate>
+    <header class="dialog-head">
+      <div>
+        <h3>开始专注</h3>
+        <p class="dialog-sub">关掉杂音，只做这一件事。</p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+
+    <label class="field">
+      <span>专注内容</span>
+      <input id="focusTitle" maxlength="80" placeholder="写周报 / 复习 / 阅读" autocomplete="off">
+    </label>
+
+    <div class="field-grid">
+      <label class="field">
+        <span>时长</span>
+        <select id="focusDuration">
+          <option value="15">15 分钟</option>
+          <option value="25" selected>25 分钟</option>
+          <option value="45">45 分钟</option>
+          <option value="60">60 分钟</option>
+          <option value="90">90 分钟</option>
+        </select>
+      </label>
+      <label class="field">
+        <span>关联日程 <em>可选</em></span>
+        <select id="focusEvent"><option value="">不关联</option></select>
+      </label>
+    </div>
+
+    <p class="field-hint">结束后会记录实际专注时长；关联日程时，时长会累加到该日程。</p>
+
+    <footer class="dialog-foot">
+      <div class="spacer"></div>
+      <button type="button" class="btn ghost" data-close>取消</button>
+      <button type="submit" class="btn primary">开始专注</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- ================= 任务收件箱 ================= -->
+<dialog class="dialog tasks-dialog" id="tasksDialog">
+  <div class="dialog-card tasks-card">
+    <header class="dialog-head">
+      <div>
+        <h3>任务收件箱</h3>
+        <p class="dialog-sub">先记下来，再让 Agent 排进空档。</p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+
+    <form class="task-form" id="taskForm">
+      <input id="taskTitle" maxlength="80" placeholder="要做的事…" autocomplete="off" required>
+      <div class="task-form-row">
+        <select id="taskEstimate" title="预计时长">
+          <option value="30">30 分钟</option>
+          <option value="60" selected>1 小时</option>
+          <option value="90">1.5 小时</option>
+          <option value="120">2 小时</option>
+          <option value="180">3 小时</option>
+        </select>
+        <select id="taskPriority" title="优先级">
+          <option value="中" selected>中优先</option>
+          <option value="高">高优先</option>
+          <option value="低">低优先</option>
+        </select>
+        <input id="taskDue" type="date" title="截止日期（可选）">
+        <button type="submit" class="btn primary">添加</button>
+      </div>
+    </form>
+
+    <div class="task-list" id="taskList"></div>
+    <div class="task-empty" id="taskEmpty" hidden>
+      <strong>收件箱是空的</strong>
+      <p>把还没定时间的事放进来，自动排程会避开已有日程和午休。</p>
+    </div>
+    <div class="schedule-preview" id="schedulePreview" hidden></div>
+
+    <footer class="dialog-foot">
+      <select id="scheduleRange" class="select-compact" title="自动排程范围">
+        <option value="1">今天</option>
+        <option value="3" selected>未来 3 天</option>
+        <option value="7">未来 7 天</option>
+      </select>
+      <button type="button" class="btn ghost" id="autoScheduleBtn">自动排程</button>
+      <div class="spacer"></div>
+      <button type="button" class="btn primary" id="applyScheduleBtn" hidden>应用排程</button>
+    </footer>
+  </div>
+</dialog>
+
+<!-- ================= DDL 截止事项 ================= -->
+<dialog class="dialog ddl-dialog" id="ddlDialog">
+  <form class="dialog-card ddl-card" id="ddlForm" novalidate>
+    <header class="dialog-head">
+      <div>
+        <h3 id="ddlDialogTitle">添加 DDL</h3>
+        <p class="dialog-sub">截止时刻会在时间轴上打一条红色截止线。</p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+
+    <label class="field">
+      <span>截止事项</span>
+      <input id="ddlTitle" maxlength="80" placeholder="要交什么？" autocomplete="off" required>
+    </label>
+
+    <div class="field-grid">
+      <label class="field">
+        <span>截止日期</span>
+        <input id="ddlDate" type="date" required>
+      </label>
+      <label class="field">
+        <span>截止时间</span>
+        <input id="ddlTime" type="time" step="60" required>
+      </label>
+    </div>
+
+    <label class="field">
+      <span>预计投入 <em>可选</em></span>
+      <select id="ddlEstimate">
+        <option value="0" selected>不设置</option>
+        <option value="30">30 分钟</option>
+        <option value="60">1 小时</option>
+        <option value="90">1.5 小时</option>
+        <option value="120">2 小时</option>
+        <option value="180">3 小时</option>
+        <option value="240">4 小时</option>
+      </select>
+    </label>
+
+    <label class="field">
+      <span>备注 <em>可选</em></span>
+      <textarea id="ddlNote" rows="2" maxlength="240" placeholder="提交入口、材料清单…"></textarea>
+    </label>
+
+    <p class="ddl-hint" id="ddlHint"></p>
+
+    <footer class="dialog-foot">
+      <button type="button" class="btn danger" id="ddlDelete" hidden>删除</button>
+      <div class="spacer"></div>
+      <label class="check" id="ddlDoneWrap" hidden><input type="checkbox" id="ddlDone"><span>已完成</span></label>
+      <button type="button" class="btn ghost" data-close>取消</button>
+      <button type="submit" class="btn primary" id="ddlSubmit">保存</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- ================= DDL 列表 ================= -->
+<dialog class="dialog ddl-list-dialog" id="ddlListDialog">
+  <div class="dialog-card ddl-list-card">
+    <header class="dialog-head">
+      <div>
+        <h3>DDL 截止事项</h3>
+        <p class="dialog-sub" id="ddlListSummary">按截止时间排序。</p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+
+    <div class="ddl-list" id="ddlList"></div>
+    <div class="ddl-list-empty" id="ddlListEmpty" hidden>
+      <strong>还没有 DDL</strong>
+      <p>把「周五交实验报告」这类硬截止放在这里，时间轴上会出现红色截止线。</p>
+    </div>
+
+    <footer class="dialog-foot">
+      <div class="spacer"></div>
+      <button type="button" class="btn ghost" data-close>关闭</button>
+      <button type="button" class="btn primary" id="ddlNewBtn">新建 DDL</button>
+    </footer>
+  </div>
+</dialog>
+
+<!-- ================= 顺延未完成 ================= -->
+<dialog class="dialog rollover-dialog" id="rolloverDialog">
+  <div class="dialog-card rollover-card">
+    <header class="dialog-head">
+      <div>
+        <h3>顺延未完成</h3>
+        <p class="dialog-sub" id="rolloverSub">把没做完的日程挪到明天或下一个空档。</p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+
+    <div class="rollover-list" id="rolloverList"></div>
+    <div class="rollover-empty" id="rolloverEmpty" hidden>
+      <strong>没有未完成的日程</strong>
+      <p>今天的安排都已经勾掉了，或者这一天本来就是空的。</p>
+    </div>
+
+    <label class="field">
+      <span>顺延到</span>
+      <select id="rolloverTarget">
+        <option value="tomorrow">明天同一时间</option>
+        <option value="next">下一个空档</option>
+      </select>
+    </label>
+
+    <footer class="dialog-foot">
+      <div class="spacer"></div>
+      <button type="button" class="btn ghost" data-close>取消</button>
+      <button type="button" class="btn primary" id="rolloverApply">顺延</button>
+    </footer>
+  </div>
+</dialog>
+
+<!-- ================= 分类与颜色 ================= -->
+<dialog class="dialog category-dialog" id="categoryDialog">
+  <div class="dialog-card category-card">
+    <header class="dialog-head">
+      <div>
+        <h3>分类与颜色</h3>
+        <p class="dialog-sub">改名会同步更新已有日程；使用中的分类不能删除。</p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+
+    <div class="category-list" id="categoryList"></div>
+    <div class="category-add">
+      <input id="newCategoryName" type="text" maxlength="12" placeholder="新分类名称" autocomplete="off">
+      <input id="newCategoryColor" type="color" value="#1d5fbf" aria-label="新分类颜色">
+      <button type="button" class="btn ghost" id="addCategoryBtn">添加</button>
+    </div>
+
+    <footer class="dialog-foot">
+      <div class="spacer"></div>
+      <button type="button" class="btn ghost" data-close>取消</button>
+      <button type="button" class="btn primary" id="saveCategoriesBtn">保存分类</button>
+    </footer>
+  </div>
+</dialog>
+
+<!-- ================= 保存模板 ================= -->
+<dialog class="dialog template-save-dialog" id="templateSaveDialog">
+  <form class="dialog-card" id="templateSaveForm" novalidate>
+    <header class="dialog-head">
+      <div>
+        <h3>保存为模板</h3>
+        <p class="dialog-sub">保存这一天的标题、时间、分类和备注，之后可以一键套用。</p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+    <label class="field">
+      <span>模板名称</span>
+      <input id="templateNameInput" maxlength="40" placeholder="工作日 / 周末 / 考试周" autocomplete="off" required>
+    </label>
+    <footer class="dialog-foot">
+      <div class="spacer"></div>
+      <button type="button" class="btn ghost" data-close>取消</button>
+      <button type="submit" class="btn primary" id="templateSaveSubmit">保存模板</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- ================= 课表节次 ================= -->
+<dialog class="dialog timetable-dialog" id="timetableDialog">
+  <div class="dialog-card timetable-card">
+    <header class="dialog-head">
+      <div>
+        <h3>课表节次</h3>
+        <p class="dialog-sub">设置每节课的时间。之后说「周三第1到2节 高数」就能自动换算。</p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+
+    <label class="field semester-field">
+      <span>学期第 1 周周一 <em>用于「1-16 周」</em></span>
+      <input type="date" id="semesterStart">
+    </label>
+    <p class="field-hint" id="semesterHint">用于「1-16 周」等周次；不填时周次课会先提示你补填，避免按今天计算导致错位。</p>
+
+    <div class="period-tools">
+      <button type="button" class="btn ghost" id="periodAdd">+ 添加一节</button>
+      <button type="button" class="btn ghost" id="periodTemplate">常用 12 节模板</button>
+      <button type="button" class="btn ghost" id="periodClear">清空</button>
+    </div>
+
+    <div class="period-list" id="periodList"></div>
+    <div class="period-empty" id="periodEmpty" hidden>
+      <strong>还没有节次</strong>
+      <p>先添加一节，或点「常用 12 节模板」再改成你们学校的作息。</p>
+    </div>
+
+    <p class="field-hint" id="periodHint">第几节从 1 开始。改完点「保存课表」才会生效。</p>
+
+    <footer class="dialog-foot">
+      <div class="spacer"></div>
+      <button type="button" class="btn ghost" data-close>取消</button>
+      <button type="button" class="btn primary" id="periodSave">保存课表</button>
+    </footer>
+  </div>
+</dialog>
+
+<!-- ================= 主题外观 ================= -->
+<dialog class="dialog theme-dialog" id="themeDialog">
+  <div class="dialog-card theme-card">
+    <header class="dialog-head">
+      <div>
+        <h3>主题外观</h3>
+        <p class="dialog-sub">点一下立即切换，选择会记住到下次打开。</p>
+      </div>
+      <button type="button" class="icon-btn" data-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+
+    <div class="theme-grid" id="themeGrid">
+      <button type="button" class="theme-option" data-theme="paper">
+        <span class="theme-preview" style="--sw-bg:#f2f4f7;--sw-surface:#ffffff;--sw-text:#111315;--sw-accent:#1d5fbf;">
+          <i class="tp-bar"></i><i class="tp-line"></i><i class="tp-line short"></i>
+        </span>
+        <span class="theme-option-body"><strong>纸白</strong><small>清爽 · 台账纸感</small></span>
+        <span class="theme-check">✓</span>
+      </button>
+
+      <button type="button" class="theme-option" data-theme="ink">
+        <span class="theme-preview" style="--sw-bg:#111315;--sw-surface:#191c20;--sw-text:#eef1f4;--sw-accent:#74a9ff;">
+          <i class="tp-bar"></i><i class="tp-line"></i><i class="tp-line short"></i>
+        </span>
+        <span class="theme-option-body"><strong>墨夜</strong><small>深色 · 夜间护眼</small></span>
+        <span class="theme-check">✓</span>
+      </button>
+
+      <button type="button" class="theme-option" data-theme="sand">
+        <span class="theme-preview" style="--sw-bg:#f4efe6;--sw-surface:#fffdf8;--sw-text:#2a251f;--sw-accent:#9a5b2e;">
+          <i class="tp-bar"></i><i class="tp-line"></i><i class="tp-line short"></i>
+        </span>
+        <span class="theme-option-body"><strong>暖砂</strong><small>暖色 · 纸张质感</small></span>
+        <span class="theme-check">✓</span>
+      </button>
+
+      <button type="button" class="theme-option" data-theme="forest">
+        <span class="theme-preview" style="--sw-bg:#edf2ee;--sw-surface:#fbfdfb;--sw-text:#14201a;--sw-accent:#2f6f4f;">
+          <i class="tp-bar"></i><i class="tp-line"></i><i class="tp-line short"></i>
+        </span>
+        <span class="theme-option-body"><strong>松林</strong><small>冷绿 · 安静专注</small></span>
+        <span class="theme-check">✓</span>
+      </button>
+
+      <button type="button" class="theme-option" data-theme="glass">
+        <span class="theme-preview" style="--sw-bg:linear-gradient(135deg,#eef3ff,#f8f1ff 52%,#eefaf7);--sw-surface:rgba(255,255,255,.62);--sw-text:#151b28;--sw-accent:#3568e8;">
+          <i class="tp-bar"></i><i class="tp-line"></i><i class="tp-line short"></i>
+        </span>
+        <span class="theme-option-body"><strong>玻璃</strong><small>半透明 · 柔和流光</small></span>
+        <span class="theme-check">✓</span>
+      </button>
+
+      <button type="button" class="theme-option" data-theme="aurora">
+        <span class="theme-preview" style="--sw-bg:linear-gradient(135deg,#070b16,#0b1020 45%,#111a33);--sw-surface:rgba(34,48,82,.78);--sw-text:#eef6ff;--sw-accent:#5eead4;">
+          <i class="tp-bar"></i><i class="tp-line"></i><i class="tp-line short"></i>
+        </span>
+        <span class="theme-option-body"><strong>极光</strong><small>深海 · 极光夜空</small></span>
+        <span class="theme-check">✓</span>
+      </button>
+
+      <button type="button" class="theme-option" data-theme="hud">
+        <span class="theme-preview" style="--sw-bg:linear-gradient(135deg,#03070f,#061525 50%,#02060d);--sw-surface:rgba(6,22,36,.82);--sw-text:#d9f7ff;--sw-accent:#34e7ff;">
+          <i class="tp-bar"></i><i class="tp-line"></i><i class="tp-line short"></i>
+        </span>
+        <span class="theme-option-body"><strong>HUD</strong><small>默认 · 科幻舰载界面</small></span>
+        <span class="theme-check">✓</span>
+      </button>
+
+      <button type="button" class="theme-option" data-theme="parallax">
+        <span class="theme-preview" style="--sw-bg:linear-gradient(135deg,#0d0b10,#19121a 50%,#0b090e);--sw-surface:rgba(38,30,40,.78);--sw-text:#f7efe5;--sw-accent:#e7a15c;">
+          <i class="tp-bar"></i><i class="tp-line"></i><i class="tp-line short"></i>
+        </span>
+        <span class="theme-option-body"><strong>视差</strong><small>叙事 · 光影叠层</small></span>
+        <span class="theme-check">✓</span>
+      </button>
+
+      <button type="button" class="theme-option" data-theme="spatial">
+        <span class="theme-preview" style="--sw-bg:linear-gradient(135deg,#eef1ff,#f8f1ff 50%,#eaf8ff);--sw-surface:rgba(255,255,255,.7);--sw-text:#181d2c;--sw-accent:#5c6bff;">
+          <i class="tp-bar"></i><i class="tp-line"></i><i class="tp-line short"></i>
+        </span>
+        <span class="theme-option-body"><strong>空间</strong><small>3D · 悬浮界面</small></span>
+        <span class="theme-check">✓</span>
+      </button>
+    </div>
+
+    <footer class="dialog-foot">
+      <span class="theme-current">当前：<b id="themeCurrent">纸白</b></span>
+      <div class="spacer"></div>
+      <button type="button" class="btn primary" data-close>完成</button>
+    </footer>
+  </div>
+</dialog>
+
+<!-- ================= 月历跳转 ================= -->
+<dialog class="dialog month-dialog" id="monthDialog">
+  <div class="dialog-card month-card">
+    <header class="dialog-head month-head">
+      <button type="button" class="month-nav-btn" id="monthPrev" aria-label="上个月">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m14.5 6-6 6 6 6"></path></svg>
+      </button>
+      <h3 id="monthTitle">2026年10月</h3>
+      <button type="button" class="month-nav-btn" id="monthNext" aria-label="下个月">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9.5 6 6 6-6 6"></path></svg>
+      </button>
+      <button type="button" class="icon-btn month-close" data-close aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"></path></svg>
+      </button>
+    </header>
+    <div class="month-weekdays" aria-hidden="true">
+      <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+    </div>
+    <div class="month-grid" id="monthGrid"></div>
+    <footer class="dialog-foot month-foot">
+      <button type="button" class="btn ghost" id="monthToday">回到今天</button>
+      <div class="spacer"></div>
+      <span class="field-hint">有日程的日子会显示圆点</span>
+    </footer>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<button class="agent-fab" id="agentFab" type="button" aria-label="和智能体对话">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.5 11.5a8 8 0 0 1-8.5 8 9.4 9.4 0 0 1-3.2-.6L4 20l1.2-3.6a7.8 7.8 0 0 1-1.7-4.9 8 8 0 0 1 8.5-8 8 8 0 0 1 8.5 8Z"></path>
+    <path d="M8.5 11.5h.01M12.5 11.5h.01M16.5 11.5h.01"></path>
+  </svg>
+  <span>Agent</span>
+</button>
+
+<script src="js/util.js"></script>
+<script src="js/store.js"></script>
+<script src="js/agent.js"></script>
+<script src="js/app.js"></script>
+<script>
+/* 日知同步：把一份导出 JSON 交给原生，供 content://com.dayflow.app.sync/sync.json 读取 */
+(function () {
+  function push() {
+    try {
+      if (!window.DayFlow || !DayFlow.store || typeof DayFlow.store.exportAll !== 'function') return;
+      if (!window.DayFlowNative || !DayFlowNative.publishSync) return;
+
+      // 先把日知推来的增量并进来：只加不覆盖，时序里删掉的不会被复活
+      if (typeof DayFlowNative.takeInbox === 'function') {
+        var inbox = DayFlowNative.takeInbox();
+        if (inbox) {
+          try {
+            var data = JSON.parse(inbox);
+            var added = 0;
+            (data.events || []).forEach(function (e) {
+              if (!e || !e.date) return;
+              var key = e.date + '|' + e.start + '|' + String(e.title || '').trim();
+              var dup = DayFlow.store.events.some(function (x) {
+                return (x.date + '|' + x.start + '|' + String(x.title || '').trim()) === key;
+              });
+              if (!dup) { DayFlow.store.add(e); added++; }
+            });
+            (data.ddls || []).forEach(function (d) {
+              if (!d || !d.date) return;
+              var dup = DayFlow.store.ddls.some(function (x) {
+                return x.date === d.date && String(x.title || '') === String(d.title || '');
+              });
+              if (!dup) { DayFlow.store.addDdl(d); added++; }
+            });
+            if (added) {
+              try { window.dispatchEvent(new CustomEvent('rizhiSynced', { detail: added })); } catch (e2) {}
+              try { if (typeof DayFlow.store.dedupeFuzzy === 'function') DayFlow.store.dedupeFuzzy(); } catch (e4) {}
+            }
+          } catch (e3) { /* 收件箱坏了就跳过 */ }
+        }
+      }
+
+      DayFlowNative.publishSync(JSON.stringify(DayFlow.store.exportAll()));
+    } catch (e) { /* 网页版没有这个桥，忽略 */ }
+  }
+  setTimeout(push, 1800);
+  setInterval(push, 60000);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') push();
+  });
+})();
+</script>
+</body>
+</html>

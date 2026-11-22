@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="15dp"
+    android:background="@drawable/widget_bg_light">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_header_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="今日日程"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="#111315" />
+
+        <TextView
+            android:id="@+id/widget_header_date"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:text=""
+            android:textSize="11sp"
+            android:textColor="#5F6368" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_next_block"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widget_next_time"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="#1D5FBF"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/widget_next_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text=""
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#111315"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/widget_next_meta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:text=""
+            android:textSize="11sp"
+            android:textColor="#5F6368"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_events"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="7dp"
+        android:orientation="vertical" />
+
+    <TextView
+        android:id="@+id/widget_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="打开 DayFlow 同步今日日程"
+        android:textSize="13sp"
+        android:textColor="#5F6368"
+        android:gravity="center"
+        android:paddingTop="18dp"
+        android:paddingBottom="14dp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/widget_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_footer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text=""
+            android:textSize="10sp"
+            android:textColor="#5F6368"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/widget_prev"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="6dp"
+            android:paddingEnd="4dp"
+            android:text="‹"
+            android:textSize="18sp"
+            android:textColor="#5F6368"
+            android:gravity="center" />
+
+        <TextView
+            android:id="@+id/widget_page"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="28dp"
+            android:text="1/1"
+            android:textSize="10sp"
+            android:textColor="#5F6368"
+            android:gravity="center" />
+
+        <TextView
+            android:id="@+id/widget_next"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="4dp"
+            android:paddingEnd="2dp"
+            android:text="›"
+            android:textSize="18sp"
+            android:textColor="#5F6368"
+            android:gravity="center" />
+    </LinearLayout>
+</LinearLayout>
